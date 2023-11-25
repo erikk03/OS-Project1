@@ -13,6 +13,8 @@
 
 
 struct shared_use_st {
+    int running;
+
     sem_t  sem1;            /* POSIX unnamed semaphore */
     sem_t  sem2;            /* POSIX unnamed semaphore */
 
@@ -21,6 +23,8 @@ struct shared_use_st {
 
 	char some_textA[TEXT_SZ];
     char some_textB[TEXT_SZ];
+
+    int cancelation;       // 0 from mainA, 1 from mainB
 };
 
 // Thread functions
