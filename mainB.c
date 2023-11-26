@@ -97,7 +97,7 @@ void *consume(void *shared_s){
             errExit("sem_post");
         }
 
-        if(shared_stuff->last_packet == 1){
+        if(shared_stuff->last_packetA == 1){
             printf("\nA wrote: %s", local_buffer);
             memset(local_buffer, '\0', TEXT_SZ);
             shared_stuff->messages_recievedB ++;
@@ -120,7 +120,7 @@ void *produce(void *shared_s){
         printf("Enter some text: ");
         fgets(shared_stuff->some_textB, TEXT_SZ, stdin);
         //shared_stuff->written_by_B = 1;
-        shared_stuff->last_packet = 0;
+        shared_stuff->last_packetB = 0;
 
         for(int i = 0; i < strlen(shared_stuff->some_textB); i=i+15){
             memset(shared_stuff->text_packetB, 0, 15);   
@@ -128,7 +128,7 @@ void *produce(void *shared_s){
             shared_stuff->total_packages_sentB ++;
 
             if(i >= strlen(shared_stuff->some_textA) - 15){
-                shared_stuff->last_packet = 1;
+                shared_stuff->last_packetB = 1;
             }
 
             /* Post 'sem2' to tell the peer that it can now access the modified data in shared memory. */
