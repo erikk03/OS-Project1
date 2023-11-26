@@ -27,8 +27,13 @@ int main()
     pthread_t thread1, thread2;
 
     /* Initialize semaphores as process-shared, with value 0. */
-    if (sem_init(&shared_stuff->sem2, 1, 0) == -1)
+    if (sem_init(&shared_stuff->sem2, 1, 0) == -1){
         errExit("sem_init-sem2");
+    }
+
+    if (sem_init(&shared_stuff->sem_packet2, 1, 0) == -1){
+        errExit("sem_init-sem_packet2");
+    }
 
     /*SEND MESSAGE TO B*/
     pthread_create(&thread1, NULL, produce, (void*)shared_stuff);
@@ -42,13 +47,6 @@ int main()
     }
     else
         pthread_join( thread1, NULL);
-	
-
-    /* Post 'sem2' to tell the peer that it can now
-        access the modified data in shared memory. */
-
-    if (sem_post(&shared_stuff->sem2) == -1)
-        errExit("sem_post");
 
     // Detach shared memory segment
 	if (shmdt(shared_memory) == -1) {
@@ -60,55 +58,63 @@ int main()
 
 void *consume(void *shared_s){
     struct shared_use_st *shared_stuff = shared_s;
+    char local_buffer[TEXT_SZ];
 
     while(shared_stuff->running){
 
         /* Wait for 'sem2' to be posted by peer before touching shared memory. */
-        if (sem_wait(&shared_stuff->sem2) == -1)
+        if (sem_wait(&shared_stuff->sem2) == -1){
             errExit("sem_wait");
-
-        // if(shared_stuff->running == 0){
-        //     break;
-        // }
-
-        if (shared_stuff->written_by_B){
-            printf("\nA wrote: %s", shared_stuff->some_textB);
-            sleep( rand() % 4 );
-            shared_stuff->written_by_B = 0;
-
-            if (strncmp(shared_stuff->some_textB, "BYE", 3) == 0){
-                shared_stuff->running = 0;
-            }
         }
+
+        strcat(local_buffer, shared_stuff->text_packetB);
+        
+        if (sem_post(&shared_stuff->sem_packet2) == -1){
+            errExit("sem_post");
+        }
+        
+        printf("\nB wrote: %s", local_buffer);
+        memset(local_buffer, 0, TEXT_SZ);
+        
+        //shared_stuff->written_by_B = 0;
+
+        if (strncmp(shared_stuff->some_textB, "BYE", 3) == 0){
+            shared_stuff->running = 0;
+        }
+        
     }
     pthread_exit("temp_text");
 }
 
 void *produce(void *shared_s){
     struct shared_use_st *shared_stuff = shared_s;
-    char buffer[BUFSIZ];
 
     while(shared_stuff->running) {
-        // while(shared_stuff->written_by_A == 1) {
-        //     //sleep(2);
-        //     printf("waiting for user...\n");
-        // }
         printf("Enter some text: ");
-        fgets(buffer, BUFSIZ, stdin);
-        strncpy(shared_stuff->some_textA, buffer, TEXT_SZ);
-        shared_stuff->written_by_A = 1;
+        fgets(shared_stuff->some_textA, TEXT_SZ, stdin);
 
-        if (strncmp(buffer, "BYE", 3) == 0) {
-            printf("FINISH");
-            shared_stuff->running = 0;
-            shared_stuff->cancelation = 0;
-            if (sem_post(&shared_stuff->sem2) == -1)
+        for(int i = 0; i < strlen(shared_stuff->some_textA); i=i+15){
+            //shared_stuff->written_by_A = 1;
+            memset(shared_stuff->text_packetA, 0, 15);   
+            strncpy(shared_stuff->text_packetA, shared_stuff->some_textA + i, 15);
+            
+            /* Post 'sem1' to tell the peer that it can now access the modified data in shared memory. */
+            if (sem_post(&shared_stuff->sem1) == -1){
                 errExit("sem_post");
+            }
+            
+            if (sem_wait(&shared_stuff->sem_packet1) == -1){
+                errExit("sem_wait");
+            }
         }
 
-        /* Post 'sem1' to tell the peer that it can now access the modified data in shared memory. */
-        if (sem_post(&shared_stuff->sem1) == -1)
-        errExit("sem_post");
+        if (strncmp(shared_stuff->some_textA, "BYE", 3) == 0) {
+            shared_stuff->running = 0;
+            shared_stuff->cancelation = 0;
+            if (sem_post(&shared_stuff->sem2) == -1){
+                errExit("sem_post");
+            }
+        }
 
     }
 
