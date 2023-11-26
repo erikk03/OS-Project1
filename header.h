@@ -24,6 +24,8 @@ struct shared_use_st {
     sem_t sem_packet1;
     sem_t sem_packet2;
 
+    int last_packet;            // Defines the last packet of a message
+
 	int written_by_A;           // Defines which process is writing something
     int written_by_B;
 
