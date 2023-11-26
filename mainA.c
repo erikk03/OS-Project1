@@ -19,10 +19,14 @@ int main()
 	}
 	printf("Shared memory segment with id %d attached at %p\n", shmid, shared_memory);
 
-
+    // Initialize struct
 	shared_stuff = (struct shared_use_st *)shared_memory;
-    shared_stuff->written_by_B = 0;
+    //shared_stuff->written_by_B = 0;
     shared_stuff->running = 1;
+    shared_stuff->messages_recievedA = 0;
+    shared_stuff->messages_sentA = 0;
+    shared_stuff->total_packages_sentA = 0;
+    shared_stuff->total_packages_recievedA = 0;
 
     pthread_t thread1, thread2;
 
@@ -45,8 +49,18 @@ int main()
     if( shared_stuff->cancelation == 1){
         pthread_cancel(thread1);
     }
-    else
+    else{
         pthread_join( thread1, NULL);
+    }
+
+    // Print Stats
+    printf("\nProcess A statistics\n");
+    printf("Messages recieved: %d\n", shared_stuff->messages_recievedA);
+    printf("Messages sent: %d\n", shared_stuff->messages_sentA);
+    printf("Total number of packages recieved: %d\n", shared_stuff->total_packages_recievedA);
+    printf("Total number of packages sent: %d\n", shared_stuff->total_packages_sentA);
+    printf("Average number of packages recieved: %f\n",(float)shared_stuff->total_packages_recievedA/shared_stuff->messages_recievedA);
+    printf("Average number of packages sent: %f\n", (float)shared_stuff->total_packages_sentA/shared_stuff->messages_sentA);
 
     // Detach shared memory segment
 	if (shmdt(shared_memory) == -1) {
@@ -68,7 +82,8 @@ void *consume(void *shared_s){
         }
 
         strcat(local_buffer, shared_stuff->text_packetB);
-        
+        shared_stuff->total_packages_recievedA ++;
+
         if (sem_post(&shared_stuff->sem_packet2) == -1){
             errExit("sem_post");
         }
@@ -76,6 +91,7 @@ void *consume(void *shared_s){
         if(shared_stuff->last_packet == 1){
             printf("\nA wrote: %s", local_buffer);
             memset(local_buffer, '\0', TEXT_SZ);
+            shared_stuff->messages_recievedA ++;
         }
         
         //shared_stuff->written_by_B = 0;
@@ -100,7 +116,8 @@ void *produce(void *shared_s){
             //shared_stuff->written_by_A = 1;
             memset(shared_stuff->text_packetA, '\0', 15);   
             strncpy(shared_stuff->text_packetA, shared_stuff->some_textA + i, 15);
-            
+            shared_stuff->total_packages_sentA ++;
+
             if(i >= strlen(shared_stuff->some_textA) - 15){
                 shared_stuff->last_packet = 1;
             }
@@ -123,7 +140,7 @@ void *produce(void *shared_s){
                 errExit("sem_post");
             }
         }
-
+        shared_stuff->messages_sentA ++;
     }
 
     pthread_exit("temp_text");

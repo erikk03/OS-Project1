@@ -35,6 +35,18 @@ struct shared_use_st {
     char text_packetA[BUFF_SIZE];   // Buffer for message transfer of 15 bytes
     char text_packetB[BUFF_SIZE];
 
+    int messages_recievedA;     // Stats for each process
+    int messages_recievedB;
+    
+    int messages_sentA;
+    int messages_sentB;
+
+    int total_packages_recievedA;
+    int total_packages_recievedB;
+
+    int total_packages_sentA;
+    int total_packages_sentB;
+
     int cancelation;            // Tells which process terminated the program. 0 for mainA, 1 for mainB
 };
 
