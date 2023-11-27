@@ -61,7 +61,7 @@ int main()
     printf("Total number of packages sent: %d\n", shared_stuff->total_packages_sentB);
     printf("Average number of packages recieved: %f\n",(float)shared_stuff->total_packages_recievedB/shared_stuff->messages_recievedB);
     printf("Average number of packages sent: %f\n", (float)shared_stuff->total_packages_sentB/shared_stuff->messages_sentB);
-    printf("Average execution time of recieved packages: %d microseconds\n", shared_stuff->total_timeB);
+    printf("Average execution time of recieved packages: %d microseconds\n", shared_stuff->total_timeB/shared_stuff->messages_recievedB);
 
     // Detach shared memory segment
 	if (shmdt(shared_memory) == -1) {
