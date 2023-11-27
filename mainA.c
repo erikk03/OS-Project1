@@ -91,6 +91,7 @@ void *consume(void *shared_s){
         if(shared_stuff->last_packetB == 1){
             printf("\nA wrote: %s", local_buffer);
             memset(local_buffer, '\0', TEXT_SZ);
+            memset(shared_stuff->some_textB, '\0', TEXT_SZ);
             shared_stuff->messages_recievedA ++;
         }
         
@@ -118,10 +119,10 @@ void *produce(void *shared_s){
             strncpy(shared_stuff->text_packetA, shared_stuff->some_textA + i, 15);
             shared_stuff->total_packages_sentA ++;
 
-            if(i >= strlen(shared_stuff->some_textA) - 15){
+            if(i >= (int)strlen(shared_stuff->some_textA) - 15){
                 shared_stuff->last_packetA = 1;
             }
-            
+
             /* Post 'sem1' to tell the peer that it can now access the modified data in shared memory. */
             if (sem_post(&shared_stuff->sem1) == -1){
                 errExit("sem_post");
@@ -136,6 +137,7 @@ void *produce(void *shared_s){
         if (strncmp(shared_stuff->some_textA, "BYE", 3) == 0) {
             shared_stuff->running = 0;
             shared_stuff->cancelation = 0;
+            shared_stuff->total_packages_recievedA --;
             if (sem_post(&shared_stuff->sem2) == -1){
                 errExit("sem_post");
             }

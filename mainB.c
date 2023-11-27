@@ -100,6 +100,7 @@ void *consume(void *shared_s){
         if(shared_stuff->last_packetA == 1){
             printf("\nA wrote: %s", local_buffer);
             memset(local_buffer, '\0', TEXT_SZ);
+            memset(shared_stuff->some_textA, '\0', TEXT_SZ);
             shared_stuff->messages_recievedB ++;
         }
         
@@ -127,7 +128,7 @@ void *produce(void *shared_s){
             strncpy(shared_stuff->text_packetB, shared_stuff->some_textB + i, 15);
             shared_stuff->total_packages_sentB ++;
 
-            if(i >= strlen(shared_stuff->some_textA) - 15){
+            if(i >= (int)strlen(shared_stuff->some_textA) - 15){
                 shared_stuff->last_packetB = 1;
             }
 
@@ -143,6 +144,7 @@ void *produce(void *shared_s){
         if (strncmp(shared_stuff->some_textB, "BYE", 3) == 0) {
             shared_stuff->running = 0;
             shared_stuff->cancelation = 1;
+            shared_stuff->total_packages_recievedB --;
             if (sem_post(&shared_stuff->sem1) == -1){
                 errExit("sem_post");
             }
