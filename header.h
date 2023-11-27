@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <sys/shm.h>
+#include <sys/time.h>
 #include <semaphore.h>
 
 #define TEXT_SZ 2048
@@ -24,11 +25,11 @@ struct shared_use_st {
     sem_t sem_packet1;
     sem_t sem_packet2;
 
-    int last_packetA;            // Defines the last packet of a message
-    int last_packetB;
+    int first_packetA;          // Defines the first packet of a message. 1 for true, 0 for false 
+    int first_packetB;
 
-	int written_by_A;           // Defines which process is writing something
-    int written_by_B;
+    int last_packetA;           // Defines the last packet of a message
+    int last_packetB;
 
 	char some_textA[TEXT_SZ];   // Buffer for each process
     char some_textB[TEXT_SZ];
@@ -47,6 +48,12 @@ struct shared_use_st {
 
     int total_packages_sentA;
     int total_packages_sentB;
+
+    struct timeval startA, endA;
+    struct timeval startB, endB;
+
+    int total_timeA;
+    int total_timeB;
 
     int cancelation;            // Tells which process terminated the program. 0 for mainA, 1 for mainB
 };

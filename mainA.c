@@ -21,12 +21,12 @@ int main()
 
     // Initialize struct
 	shared_stuff = (struct shared_use_st *)shared_memory;
-    //shared_stuff->written_by_B = 0;
     shared_stuff->running = 1;
     shared_stuff->messages_recievedA = 0;
     shared_stuff->messages_sentA = 0;
     shared_stuff->total_packages_sentA = 0;
     shared_stuff->total_packages_recievedA = 0;
+    shared_stuff->total_timeA = 0;
 
     pthread_t thread1, thread2;
 
@@ -61,6 +61,7 @@ int main()
     printf("Total number of packages sent: %d\n", shared_stuff->total_packages_sentA);
     printf("Average number of packages recieved: %f\n",(float)shared_stuff->total_packages_recievedA/shared_stuff->messages_recievedA);
     printf("Average number of packages sent: %f\n", (float)shared_stuff->total_packages_sentA/shared_stuff->messages_sentA);
+    printf("Average execution time of recieved packages: %d microseconds\n", shared_stuff->total_timeA);
 
     // Detach shared memory segment
 	if (shmdt(shared_memory) == -1) {
@@ -88,6 +89,11 @@ void *consume(void *shared_s){
             errExit("sem_post");
         }
         
+        if(shared_stuff->first_packetB == 1){
+            gettimeofday(&shared_stuff->endB, NULL);
+            shared_stuff->total_timeA = shared_stuff->total_timeA + ((shared_stuff->endB.tv_sec * 1000000 + shared_stuff->endB.tv_usec)-(shared_stuff->startB.tv_sec * 1000000 + shared_stuff->startB.tv_usec));
+        }
+
         if(shared_stuff->last_packetB == 1){
             printf("\nA wrote: %s", local_buffer);
             memset(local_buffer, '\0', TEXT_SZ);
@@ -119,6 +125,13 @@ void *produce(void *shared_s){
             strncpy(shared_stuff->text_packetA, shared_stuff->some_textA + i, 15);
             shared_stuff->total_packages_sentA ++;
 
+            if(i==0){
+                shared_stuff->first_packetA = 1;
+                gettimeofday(&shared_stuff->startA, NULL);
+            }else{
+                shared_stuff->first_packetA = 0;
+            }
+            
             if(i >= (int)strlen(shared_stuff->some_textA) - 15){
                 shared_stuff->last_packetA = 1;
             }

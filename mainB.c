@@ -4,8 +4,6 @@ int main()
 {
 	void *shared_memory = (void *)0;
 	struct shared_use_st *shared_stuff;
-	
-	//srand((unsigned int)getpid()); //-
 
     int shmid;
 	shmid = shmget((key_t)1234, sizeof(struct shared_use_st), 0666 | IPC_CREAT);
@@ -23,12 +21,12 @@ int main()
 
     // Initialize struct
 	shared_stuff = (struct shared_use_st *)shared_memory;
-	//shared_stuff->written_by_A = 0;
     shared_stuff->running = 1;
     shared_stuff->messages_recievedB = 0;
     shared_stuff->messages_sentB = 0;
     shared_stuff->total_packages_sentB = 0;
     shared_stuff->total_packages_recievedB = 0;
+    shared_stuff->total_timeA = 0;
     
     pthread_t thread1, thread2;
     
@@ -63,6 +61,7 @@ int main()
     printf("Total number of packages sent: %d\n", shared_stuff->total_packages_sentB);
     printf("Average number of packages recieved: %f\n",(float)shared_stuff->total_packages_recievedB/shared_stuff->messages_recievedB);
     printf("Average number of packages sent: %f\n", (float)shared_stuff->total_packages_sentB/shared_stuff->messages_sentB);
+    printf("Average execution time of recieved packages: %d microseconds\n", shared_stuff->total_timeB);
 
     // Detach shared memory segment
 	if (shmdt(shared_memory) == -1) {
@@ -97,6 +96,11 @@ void *consume(void *shared_s){
             errExit("sem_post");
         }
 
+        if(shared_stuff->first_packetA == 1){
+            gettimeofday(&shared_stuff->endA, NULL);
+            shared_stuff->total_timeB = shared_stuff->total_timeB + ((shared_stuff->endA.tv_sec * 1000000 + shared_stuff->endA.tv_usec)-(shared_stuff->startA.tv_sec * 1000000 + shared_stuff->startA.tv_usec));
+        }
+        
         if(shared_stuff->last_packetA == 1){
             printf("\nA wrote: %s", local_buffer);
             memset(local_buffer, '\0', TEXT_SZ);
@@ -128,6 +132,13 @@ void *produce(void *shared_s){
             strncpy(shared_stuff->text_packetB, shared_stuff->some_textB + i, 15);
             shared_stuff->total_packages_sentB ++;
 
+            if(i==0){
+                shared_stuff->first_packetB = 1;
+                gettimeofday(&shared_stuff->startB, NULL);
+            }else{
+                shared_stuff->first_packetB = 0;
+            }
+            
             if(i >= (int)strlen(shared_stuff->some_textA) - 15){
                 shared_stuff->last_packetB = 1;
             }
