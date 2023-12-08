@@ -101,15 +101,16 @@ void *consume(void *shared_s){
             shared_stuff->total_timeB = shared_stuff->total_timeB + ((shared_stuff->endA.tv_sec * 1000000 + shared_stuff->endA.tv_usec)-(shared_stuff->startA.tv_sec * 1000000 + shared_stuff->startA.tv_usec));
         }
         
-        if(shared_stuff->last_packetA == 1){
+        if (strncmp(shared_stuff->some_textA, "#BYE#", 5) == 0){
+            shared_stuff->total_packages_recievedB --;
+            shared_stuff->running = 0;
+        }
+
+        if(shared_stuff->last_packetA == 1 && shared_stuff->running){
             printf("\33[2K\rA wrote: %s", local_buffer);
             memset(local_buffer, '\0', TEXT_SZ);
             memset(shared_stuff->some_textA, '\0', TEXT_SZ);
             shared_stuff->messages_recievedB ++;
-        }
-
-        if (strncmp(shared_stuff->some_textA, "BYE", 3) == 0){
-            shared_stuff->running = 0;
         }
         
     }
@@ -136,7 +137,7 @@ void *produce(void *shared_s){
                 shared_stuff->first_packetB = 0;
             }
             
-            if(i >= (int)strlen(shared_stuff->some_textB)- 15){
+            if(i > (int)strlen(shared_stuff->some_textB)- 15){
                 shared_stuff->last_packetB = 1;
             }
 
@@ -149,15 +150,17 @@ void *produce(void *shared_s){
             }        
         }
 
-        if (strncmp(shared_stuff->some_textB, "BYE", 3) == 0) {
+        if (strncmp(shared_stuff->some_textB, "#BYE#", 5) == 0) {
             shared_stuff->running = 0;
             shared_stuff->cancelation = 1;
             shared_stuff->total_packages_recievedB --;
+            shared_stuff->total_packages_sentB --;
             if (sem_post(&shared_stuff->sem1) == -1){
                 errExit("sem_post");
             }
+        }else{
+            shared_stuff->messages_sentB ++;
         }
-        shared_stuff->messages_sentB ++;
     }
 
     pthread_exit("temp_text");

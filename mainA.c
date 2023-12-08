@@ -93,17 +93,20 @@ void *consume(void *shared_s){
             gettimeofday(&shared_stuff->endB, NULL);
             shared_stuff->total_timeA = shared_stuff->total_timeA + ((shared_stuff->endB.tv_sec * 1000000 + shared_stuff->endB.tv_usec)-(shared_stuff->startB.tv_sec * 1000000 + shared_stuff->startB.tv_usec));
         }
-
-        if(shared_stuff->last_packetB == 1){
+        
+        if (strncmp(shared_stuff->some_textB, "#BYE#", 5) == 0){
+            shared_stuff->total_packages_recievedA --;
+            shared_stuff->running = 0;
+        }
+        
+        if(shared_stuff->last_packetB == 1 && shared_stuff->running){
             printf("\33[2K\rB wrote: %s", local_buffer);
             memset(local_buffer, '\0', TEXT_SZ);
             memset(shared_stuff->some_textB, '\0', TEXT_SZ);
             shared_stuff->messages_recievedA ++;
         }
 
-        if (strncmp(shared_stuff->some_textB, "BYE", 3) == 0){
-            shared_stuff->running = 0;
-        }
+        
         
     }
     pthread_exit("temp_text");
@@ -129,7 +132,7 @@ void *produce(void *shared_s){
                 shared_stuff->first_packetA = 0;
             }
             
-            if(i >= (int)strlen(shared_stuff->some_textA) - 15){
+            if(i > (int)strlen(shared_stuff->some_textA) - 15){
                 shared_stuff->last_packetA = 1;
             }
 
@@ -144,15 +147,17 @@ void *produce(void *shared_s){
             
         }
 
-        if (strncmp(shared_stuff->some_textA, "BYE", 3) == 0) {
+        if (strncmp(shared_stuff->some_textA, "#BYE#", 5) == 0) {
             shared_stuff->running = 0;
             shared_stuff->cancelation = 0;
             shared_stuff->total_packages_recievedA --;
+            shared_stuff->total_packages_sentA --;
             if (sem_post(&shared_stuff->sem2) == -1){
                 errExit("sem_post");
             }
+        }else{
+            shared_stuff->messages_sentA ++;
         }
-        shared_stuff->messages_sentA ++;
     }
 
     pthread_exit("temp_text");
