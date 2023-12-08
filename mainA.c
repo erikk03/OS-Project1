@@ -95,13 +95,11 @@ void *consume(void *shared_s){
         }
 
         if(shared_stuff->last_packetB == 1){
-            printf("\nA wrote: %s", local_buffer);
+            printf("\33[2K\rB wrote: %s", local_buffer);
             memset(local_buffer, '\0', TEXT_SZ);
             memset(shared_stuff->some_textB, '\0', TEXT_SZ);
             shared_stuff->messages_recievedA ++;
         }
-        
-        //shared_stuff->written_by_B = 0;
 
         if (strncmp(shared_stuff->some_textB, "BYE", 3) == 0){
             shared_stuff->running = 0;
@@ -119,8 +117,7 @@ void *produce(void *shared_s){
         fgets(shared_stuff->some_textA, TEXT_SZ, stdin);
         shared_stuff->last_packetA = 0;
 
-        for(int i = 0; i < strlen(shared_stuff->some_textA); i=i+15){
-            //shared_stuff->written_by_A = 1;
+        for(int i = 0; i < (int)strlen(shared_stuff->some_textA)-1; i=i+15){
             memset(shared_stuff->text_packetA, '\0', 15);   
             strncpy(shared_stuff->text_packetA, shared_stuff->some_textA + i, 15);
             shared_stuff->total_packages_sentA ++;
